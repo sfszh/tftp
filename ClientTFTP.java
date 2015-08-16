@@ -1,10 +1,4 @@
 
-/*
-  Names: Lee Page, Edward Banner
-  Class: CIS 410 - Networks
-  Assignment: 5
-  Due date: April 18 2012
-*/
 import java.net.*;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;

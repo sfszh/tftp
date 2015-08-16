@@ -1,4 +1,7 @@
-Names: Lee Page, Edward Banner
+Names: Rui Zhang
+Compile
+=======
+
 Files: README-TFTP - to provide documentation that complies with set guidelines
        ServerTFTP.java - Multithreaded server, listens on port 6969, receives a request and spawns a new thread on a new port; calls ReceiverTFTP.java if a write request or SenderTFTP.java if a read request.
        ClientTFTP.java - Contacts the server, calls ReceiverTFTP.java for a read request or SenderTFTP.java for a write request.
