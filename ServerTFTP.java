@@ -20,10 +20,12 @@ public class ServerTFTP extends Thread {
         try {
             // open up a new socket for data flow
             DatagramSocket serverSocket = new DatagramSocket();
+            
+            //add shutdown hook
             Runtime.getRuntime().addShutdownHook(new Thread() {
                 public void run() {
                 	serverSocket.close();
-                    System.out.println("Shutdown Hook is running !");
+                    System.out.println("Server Socket closed");
                 }
             });
             // assume the datagram buffer contains characters

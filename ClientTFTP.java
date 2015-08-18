@@ -11,123 +11,249 @@ public class ClientTFTP {
 
 	final static int DEFAULT_PORT = 6969;
 
-	public static void main(String [] args) {
-        // error checking
-        String usage = "Usage: java TFTPClinet <server> <READ | WRITE> <file>";
-        if (args.length < 3) {
-            System.err.println(usage);
-            System.exit(1);
-        } else if (!args[1].equals("read") && !args[1].equals("write")){
-            System.err.println(usage);
-            System.exit(1);
-        } else if (args[2].contains("/")){
-            System.err.println("Filename cannot contain '/'!");
-            System.exit(1);
-        } else if (args[2].charAt(0) == '.'){
-            System.err.println("Filename cannot start with '.'!");
-            System.exit(1);
-        } 
-        
-        final String dir = System.getProperty("user.dir");
-        System.out.println("current dir = " + dir);
+	public static void main(String[] args) {
+		// error checking
+		String usage = "Usage: java TFTPClinet <server> <READ | WRITE> <file>";
+		if (args.length < 3) {
+			System.err.println(usage);
+			System.exit(1);
+		} else if (!args[1].equals("read") && !args[1].equals("write")) {
+			System.err.println(usage);
+			System.exit(1);
+		} else if (args[2].contains("/")) {
+			System.err.println("Filename cannot contain '/'!");
+			System.exit(1);
+		} else if (args[2].charAt(0) == '.') {
+			System.err.println("Filename cannot start with '.'!");
+			System.exit(1);
+		}
 
-        if (args[1].equals("read") || args[1].equals("write")){
-            // initialize some variables
-            int block = 0;
-            DataOutputStream fileOut = null;
-            DataInputStream fileData = null;
-            byte[] bay = new byte[516];
-            String server = args[0];
-            String request = args[1];
-            String fileName = args[2];
+		final String dir = System.getProperty("user.dir");
+		System.out.println("current dir = " + dir);
 
-            try {
-                if (request.equals("read")) {  // make sure file doesn't already exist
-                    // open up stream on file
-                    if (new File(fileName).exists()) {
-                    	System.out.println("File already exists " + fileName + ", Try to update...");
-                    	Path path = Paths.get("./"+fileName);
-                    	Files.delete(path);
-                      //System.exit(1);
-                    }else{
-                    	System.out.println("Downloading file " + fileName);
-                    }
-                    // prepare the RRQ data to send to server
-                    // populates bay with [01][fileName][0][octet][0]
-                    ClientTFTP.prepareDataRRQ(bay, fileName, "octet");
+		if (args[1].equals("read") || args[1].equals("write")) {
+			// initialize some variables
+			int block = 0;
+			DataOutputStream fileOut = null;
+			DataInputStream fileData = null;
+			byte[] bay = new byte[516];
+			String server = args[0];
+			String request = args[1];
+			String fileName = args[2];
 
-                    // first block receiver plans to receive is 1
-                    block = 1;
-                    // create generic socket
-                    DatagramSocket cli = new DatagramSocket(); // no specific port
+			try {
+				if (request.equals("read")) {
+					
+					// make sure file doesn't already exist
+					if (new File(fileName).exists()) {
+						System.out.println("File already exists " + fileName + ", Try to update...");
+						Path path = Paths.get("./" + fileName);
+						Files.delete(path);
+						// System.exit(1);
+					} else {
+						System.out.println("Downloading file " + fileName);
+					}
+					// prepare the RRQ data to send to server
+					// populates bay with [01][fileName][0][octet][0]
+					ClientTFTP.prepareDataRRQ(bay, fileName, "octet");
 
-                    // get information for packet
-                    int port = DEFAULT_PORT;
-                    InetAddress address = InetAddress.getByName(server);
-                    DatagramPacket pkt = new DatagramPacket(bay, bay.length, address, port);
+					// first block receiver plans to receive is 1
+					block = 1;
+					// create generic socket
+					DatagramSocket cliSkt = new DatagramSocket(); // no specific
+																// port
 
-                    // send the packet
-                    ClientTFTP.sendWithTimeout(cli, pkt, request, block);
+					InetAddress ipAddr = InetAddress.getByName(server);
+					int port = DEFAULT_PORT;
+					DatagramPacket pkt = new DatagramPacket(bay, bay.length, ipAddr, port);
 
-                    // port for server has changed -- get the new port
-                    port = pkt.getPort();
-                    address = pkt.getAddress();
-                    
-                    // open up a stream for writing
-                    fileOut = new DataOutputStream(new FileOutputStream(fileName));
-                    // only write to the file if file was non-empty
-                    if (pkt.getLength()-4 > 0) {
-                        fileOut.write(bay, 4, pkt.getLength()-4);
-                    }
+					// send the packet
+					if(!sendWithTimeout(cliSkt, pkt, request, block)){
+						disconnect();
+						//System.exit(1);
+					}
 
-                    // create first ACK with block #1 to send to server
-                    byte[] ack = {0, 4, 0, 1};
-                    DatagramPacket ackPkt = new DatagramPacket(ack, ack.length, address, port);
-                    // send the first ACK
-                    cli.send(ackPkt);
+					// port for server has changed -- get the new port
+					port = pkt.getPort();
+					ipAddr = pkt.getAddress();
 
-                    // TFTPClient now takes on the role of receiver
-                    // only start receiving if data received was 512 bytes
-                    if (pkt.getLength()-4 == 512) {
-                        ReceiverTFTP receiver = new ReceiverTFTP(address, port, fileOut, cli, 2);
-                        receiver.receive();
-                    }
+					// open up a stream for writing
+					fileOut = new DataOutputStream(new FileOutputStream(fileName));
+					// write the first packet into file
+					if (pkt.getLength() - 4 > 0) {
+						fileOut.write(bay, 4, pkt.getLength() - 4);
+					}
 
-                } else if (request.equals("write")) {  // open up a stream for reading
-                    // open up stream on file
-                    fileData = new DataInputStream(new FileInputStream(fileName));
+					// create first ACK with block number 1
+					byte[] ackbuf = PacketTFTP.createAck(1); // { 0, 4, 0, 1 };
+					DatagramPacket ackPkt = new DatagramPacket(ackbuf, ackbuf.length, ipAddr, port);
+					// send the first ACK
+					UtilTFTP.puts("received packet: " + 1 + " size: " + pkt.getLength());
+					cliSkt.send(ackPkt);
 
-                    // prepare WRQ packet data
-                    // populates bay with [02[fileName][0][octet][0]
-                    ClientTFTP.prepareDataWRQ(bay, fileName, "octet");
+					//use receiver instead.
+					if (pkt.getLength() - 4 == 512) {
+						ReceiverTFTP receiver = new ReceiverTFTP(ipAddr, port, fileOut, cliSkt, 2);
+						receiver.receive();
+					}else{
+						UtilTFTP.puts("transfer ends here");
+					}
 
-                    // first block receiver plans to see is 0
-                    block = 0;
-                    
-                    // create generic socket
-                    DatagramSocket cli = new DatagramSocket(); // no specific port
+				} else if (request.equals("write")) { // open up a stream for
+														// reading
+					// open up stream on file
+					fileData = new DataInputStream(new FileInputStream(fileName));
 
-                    // get information for packet
-                    int  port = DEFAULT_PORT;
-                    InetAddress address = InetAddress.getByName(server);
-                    DatagramPacket pkt = new DatagramPacket(bay, bay.length, address, port);
+					// prepare WRQ packet data
+					// populates bay with [02[fileName][0][octet][0]
+					ClientTFTP.prepareDataWRQ(bay, fileName, "octet");
 
-                    // send the packet
-                    ClientTFTP.sendWithTimeout(cli, pkt, request, block);
+					// first block receiver plans to see is 0
+					block = 0;
 
-                    // port for server has changed -- get the new port
-                    port = pkt.getPort();
-                    address = pkt.getAddress();
-                    
-                    // TFTPClient now takes on the role of sender
-                    SenderTFTP sender = new SenderTFTP(address, port, fileData, cli);
-                    sender.send();
-                }
+					// create generic socket
+					DatagramSocket cli = new DatagramSocket(); // no specific
+																// port
 
-            } catch(Exception e) {
-                System.out.println(e);
-            } 
-        }
+					// get information for packet
+					int port = DEFAULT_PORT;
+					InetAddress address = InetAddress.getByName(server);
+					DatagramPacket pkt = new DatagramPacket(bay, bay.length, address, port);
+
+					// send the packet
+					if(!ClientTFTP.sendWithTimeout(cli, pkt, request, block)){
+						disconnect();
+					}
+
+					// port for server has changed -- get the new port
+					port = pkt.getPort();
+					address = pkt.getAddress();
+
+					// TFTPClient now takes on the role of sender
+					SenderTFTP sender = new SenderTFTP(address, port, fileData, cli);
+					sender.send();
+				}
+
+			} catch (Exception e) {
+				System.out.println(e);
+			}
+		}
+
+	}
+
+	public static boolean getFile(String filename, String dest, DatagramSocket skt, InetAddress ip, int port) {
+
+		PacketTFTP packet_rrq, packet_ack, packet_data;
+		int packet_no;
+
+		File file_exists = null;
+
+		try {
+			file_exists = new File(dest);
+		} catch (Exception e) {
+			UtilTFTP.fatalError(e.getMessage());
+		}
+
+		if (file_exists != null && file_exists.exists()) {
+			UtilTFTP.fatalError("Unable to download file to " + dest + ". Destination already exists in "
+					+ file_exists.getAbsolutePath());
+		}
+		/*
+		 * try { fout = new DataOutputStream(new FileOutputStream(dest));
+		 * 
+		 * } catch (Exception e) {
+		 * 
+		 * UtilTFTP.fatalError(
+		 * "Unable to download file to specified destination: " + dest);
+		 * 
+		 * return false;
+		 * 
+		 * }
+		 * 
+		 * request = TClientRequest.RRQ;
+		 * 
+		 * if (server_socket.isConnected()) { UtilTFTP.puts("Connected to " +
+		 * server_ip + " on port " + server_port); } else { UtilTFTP.fatalError(
+		 * "Disconnected unexpectedly"); }
+		 */
+		try {
+			DataOutputStream fileOut = new DataOutputStream(new FileOutputStream(filename));
+			// out = new BufferedOutputStream(server_socket.getOutputStream());
+			// in = new BufferedInputStream(server_socket.getInputStream());
+
+			packet_rrq = new PacketTFTP();
+
+			packet_rrq.createRRQ(filename);
+			packet_rrq.dumpData();
+
+			UtilTFTP.puts("Sending read request to server");
+			packet_rrq.sendPacket(skt, ip, port);
+
+			// wait for data packet
+			packet_ack = new PacketTFTP();
+			packet_data = new PacketTFTP();
+
+			packet_no = 0;
+
+			mainloop: while (true) {
+
+				UtilTFTP.puts("Waiting for DATA packet");
+
+				if (!packet_data.getPacket(skt, ip, port)) {
+
+					UtilTFTP.puts("End of file reached");
+					break;
+
+				}
+
+				// - gavom duomenu paketa
+				if (packet_data.isData()) {
+					char packet_num = packet_data.getPacketNumber();
+					if (packet_num != (char) packet_no) {
+						UtilTFTP.puts("WRONG ORDER" + (int) packet_num);
+					}
+
+					fileOut.write(packet_data.getData(4));
+
+					UtilTFTP.puts("DATA received, sending ACK packet");
+					packet_ack.createACK(packet_num);
+					packet_ack.sendPacket(skt,ip , port);
+
+					if (packet_data.getSize() < 4 + PacketTFTP.TFTP_PACKET_DATA_SIZE) {
+
+						UtilTFTP.puts("File transferred");
+						break;
+
+					}
+
+				} else if (packet_data.isError()) {
+
+					try {
+						UtilTFTP.puts("Error packet received with message: "
+								+ packet_data.getString(4, packet_data.getSize()));
+					} catch (Exception e) {
+					}
+					skt.close();
+					// disconnect();
+
+				} else {
+
+					UtilTFTP.puts("Unexpected packet");
+					skt.close();
+					// disconnect();
+					break mainloop;
+
+				}
+
+			}
+
+		} catch (IOException ioException) {
+
+			UtilTFTP.puts("IO Exception in thread: " + ioException.getMessage());
+
+		}
+
+		return true;
 
 	}
 
@@ -220,13 +346,14 @@ public class ClientTFTP {
 		return bay[0] != 0 || bay[1] != 4 || bay[2] != 0 || (int) bay[3] != block;
 	}
 
-	public static void sendWithTimeout(DatagramSocket cli, DatagramPacket pkt, String request, int block)
+	private static boolean sendWithTimeout(DatagramSocket cli, DatagramPacket pkt, String request, int block)
 			throws Exception {
 		int retry = 0;
 		byte[] bay = new byte[516];
 
 		while (retry < 3) {
 			try {
+				cli.setSoTimeout(500);
 				cli.send(pkt);
 				// pkt = new DatagramPacket(bay, bay.length);
 				cli.receive(pkt);
@@ -256,5 +383,15 @@ public class ClientTFTP {
 				continue;
 			}
 		}
+		if(retry == 3){
+			return false;
+		}else{
+			return true;
+		}		
+	}
+	
+	private static void disconnect(){
+		UtilTFTP.puts("shutdown");
+		System.exit(1);
 	}
 }
