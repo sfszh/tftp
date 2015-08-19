@@ -77,25 +77,6 @@ public class SenderTFTP {
         }
     }
 
-    public byte[] makeErrorData(int errorCode, String errorMessage) {
-        // return a byte array containing all data necessary for an error packet
-        int position;
-        byte[] errorBytes = new byte[516];
-        errorBytes[0] = 0;
-        errorBytes[1] = 5;
-        errorBytes[2] = 0;
-        errorBytes[3] = (byte)errorCode;
-
-        // fill up the array with a message
-        for (position = 0; position < errorMessage.length(); position++) {
-            errorBytes[4+position] = (byte)errorMessage.charAt(position);
-        }
-        // cap it with a null byte
-        errorBytes[position+4] = 0;
-
-        return errorBytes;
-    }
-
     public void sendWithTimeout(DatagramPacket packet) throws Exception {
 
         // make packet for acks
@@ -119,7 +100,7 @@ public class SenderTFTP {
 
                 if (ackPacket.getPort() != port) {  // packet came from foreign port
                     // send an error packet to the foreign source
-                    byte[] errorData = makeErrorData(5, "Unknown transfer ID.");
+                    byte[] errorData = PacketTFTP.makeErrorData(5, "Unknown transfer ID.");
                     DatagramPacket errorPacket = new DatagramPacket(errorData, errorData.length, ackPacket.getAddress(), ackPacket.getPort());
                     senderSocket.send(errorPacket);
 
@@ -145,7 +126,7 @@ public class SenderTFTP {
 
                     if (ack[0] == 0 && ack[1] == 5) {  // it's an error packet
                         // print out the error and continue
-                        printErrorMessage(ack);
+                        PacketTFTP.printErrorMessage(ack);
                     }
 
                     // only try 3 times if the block number is incorrect
@@ -159,7 +140,7 @@ public class SenderTFTP {
 
                     if (ackPacket.getPort() != port) {  // packet came from a foreign source
                         // send an error packet to the foreign source
-                        byte[] errorData = makeErrorData(5, "Unknown transfer ID.");
+                        byte[] errorData = PacketTFTP.makeErrorData(5, "Unknown transfer ID.");
                         DatagramPacket errorPacket = new DatagramPacket(errorData, errorData.length, ackPacket.getAddress(), ackPacket.getPort());
                         senderSocket.send(errorPacket);
 
@@ -189,18 +170,6 @@ public class SenderTFTP {
                 break;
             }
         }
-    }
-
-    public void printErrorMessage(byte[] bay) {
-        // prints the error message contained within an error packet
-        int length = 0;
-        int slot = 4;
-        while (bay[slot++] != 0)
-            length++;
-
-        // create a new string the will contain the mode
-        String error = new String(bay, 4, length);
-        System.out.println("ERROR MESSAGE: " + error);
     }
 
     public void insertBlockNumber(byte[] bay) {

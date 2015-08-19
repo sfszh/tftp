@@ -51,6 +51,35 @@ public class PacketTFTP {
         return highByte | (bay[3] & 0xff);
     }
     
+	public static void printErrorMessage(byte[] bay) {
+		// prints the error message contained within an error packet
+		int length = 0;
+		int slot = 4;
+		while (bay[slot++] != 0)
+			length++;
+
+		// create a new string the will contain the mode
+		String error = new String(bay, 4, length);
+		System.out.println("ERROR MESSAGE: " + error);
+	}
+	
+	public static byte[] makeErrorData(int errorCode, String errorMessage) {
+		// returns a byte array of error packet data
+		int position;
+		byte[] errorBytes = new byte[516];
+		errorBytes[0] = 0;
+		errorBytes[1] = 5;
+		errorBytes[2] = 0;
+		errorBytes[3] = (byte) errorCode;
+
+		for (position = 0; position < errorMessage.length(); position++) {
+			errorBytes[4 + position] = (byte) errorMessage.charAt(position);
+		}
+		errorBytes[position + 4] = 0;
+
+		return errorBytes;
+	}
+    
 	public PacketTFTP() {
 		
 		current_packet_size = 0;

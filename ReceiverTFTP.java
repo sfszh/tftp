@@ -38,7 +38,7 @@ public class ReceiverTFTP {
                 if (pkt.getPort() != port) {
                     /* packet came from foreign host 
                      * send an error to that host and discard it */
-                    byte[] errorData = makeErrorData(5, "Unknown transfer ID.");
+                    byte[] errorData = PacketTFTP.makeErrorData(5, "Unknown transfer ID.");
                     DatagramPacket errorPacket = new DatagramPacket(errorData, errorData.length, pkt.getAddress(), pkt.getPort());
                     skt.send(errorPacket);
                     continue;
@@ -56,7 +56,7 @@ public class ReceiverTFTP {
                 // make sure the block number is correct
                 if (bay[0] != 0 || bay[1] != 3 || curBlockNum != blockNum){
                     // block number is not correct -- send error code & continue
-                    byte[] errorData = makeErrorData(0, "Incorrect block number.");
+                    byte[] errorData = PacketTFTP.makeErrorData(0, "Incorrect block number.");
                     DatagramPacket errorPacket = new DatagramPacket(errorData, errorData.length, pkt.getAddress(), pkt.getPort());
                     skt.send(errorPacket);
                     continue;
@@ -79,21 +79,5 @@ public class ReceiverTFTP {
             System.out.println(e);
         }
         UtilTFTP.puts("Transfer ended");
-    }
-    //extracts error message from error packets
-   private byte[] makeErrorData(int errorCode, String errorMessage) {
-        int position;
-        byte[] errorBytes = new byte[516];
-        errorBytes[0] = 0;
-        errorBytes[1] = 5;
-        errorBytes[2] = 0;
-        errorBytes[3] = (byte)errorCode;
-
-        for (position = 0; position < errorMessage.length(); position++) {
-            errorBytes[4+position] = (byte)errorMessage.charAt(position);
-        }
-        errorBytes[position+4] = 0;
-
-        return errorBytes;
     }
 }

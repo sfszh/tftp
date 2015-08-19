@@ -1,12 +1,12 @@
 Names: Rui Zhang
+
 Compile
 =======
+Export ClientTFTP and ServerTFTP as .jar file.
 
-Files: README-TFTP - to provide documentation that complies with set guidelines
-       ServerTFTP.java - Multithreaded server, listens on port 6969, receives a request and spawns a new thread on a new port; calls ReceiverTFTP.java if a write request or SenderTFTP.java if a read request.
-       ClientTFTP.java - Contacts the server, calls ReceiverTFTP.java for a read request or SenderTFTP.java for a write request.
-       ReceiverTFTP.java - Receives data from the sender and sends appropriate acks or error packets until the packet received has less than 512 bytes of data.
-       SenderTFTP.java - Sends data to the receiver and receives acks.
-	
-Methodology: First we ensured the client could send a WRQ and receiver could ACK accordingly.  Then we worked on sending 512 bytes of data with appropriate headers.  We then took the sending code and created a class, SenderTFTP.  Next we ensured the server could receive the data sent by the client.  Once this was accomplished, we put the receiving code in a class called ReceiverTFTP.  We then allowed the client to perform a RRQ and have the server respond accordingly through SenderTFTP.  This was made easier because we abstracted the process of receving and sending into their appropriate classes.  After we ensured we could correctly read and write in both directions, we implemented timeouts and added the ability to send and react to error packets.  Lastly, we fully tested every aspect of this program and found it to be suitable for our purposes.
+to StartUp a server:
 
+java -jar server.jar
+
+java -jar .\client.jar localhost write up.txt
+java -jar .\client.jar localhost read up.txt

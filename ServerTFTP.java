@@ -39,7 +39,7 @@ public class ServerTFTP extends Thread {
 
             // if the mode is something other than ``octet" then quit
             if (!mode.equals("octet")) {
-                byte[] errorData = makeErrorData(0, "Mode other than octet.");
+                byte[] errorData = PacketTFTP.makeErrorData(0, "Mode other than octet.");
                 DatagramPacket errorPacket = new DatagramPacket(errorData, errorData.length, address, port);
                 serverSocket.send(errorPacket);
                 System.exit(1);
@@ -50,7 +50,7 @@ public class ServerTFTP extends Thread {
                 
                 try {  // check to see if file exists
                     if (!new File(fileName).exists()) {
-                        byte[] errorData = makeErrorData(1, "File not found.");
+                        byte[] errorData = PacketTFTP.makeErrorData(1, "File not found.");
                         DatagramPacket errorPacket = new DatagramPacket(errorData, errorData.length, address, port);
                         serverSocket.send(errorPacket);
                         System.exit(1);
@@ -71,7 +71,7 @@ public class ServerTFTP extends Thread {
 
                 if (new File(fileName).exists()) {
                     // file already exists, send error packet and quit
-                    byte[] error = makeErrorData(6, "File already exists.");
+                    byte[] error = PacketTFTP.makeErrorData(6, "File already exists.");
                     DatagramPacket errorPacket = new DatagramPacket(error, error.length, pkt.getAddress(), pkt.getPort());
                     serverSocket.send(errorPacket);
                     System.exit(1);
@@ -90,7 +90,7 @@ public class ServerTFTP extends Thread {
                 ReceiverTFTP receiver = new ReceiverTFTP(address, port, fileOutput, serverSocket, block);
                 receiver.receive();
             } else {  // it's not a RRQ nor a WRQ
-                byte[] errorData = makeErrorData(0, "First packet must be RRQ or WRQ.");
+                byte[] errorData = PacketTFTP.makeErrorData(0, "First packet must be RRQ or WRQ.");
                 DatagramPacket errorPacket = new DatagramPacket(errorData, errorData.length, address, port);
                 serverSocket.send(errorPacket);
                 System.exit(1);
@@ -128,26 +128,10 @@ public class ServerTFTP extends Thread {
         return fileName;
     }
 
-    //method creates error packets
-    public byte[] makeErrorData(int errorCode, String errorMessage) {
-        int position;
-        byte[] errorBytes = new byte[516];
-        errorBytes[0] = 0;
-        errorBytes[1] = 5;
-        errorBytes[2] = 0;
-        errorBytes[3] = (byte)errorCode;
-
-        for (position = 0; position < errorMessage.length(); position++) {
-            errorBytes[4+position] = (byte)errorMessage.charAt(position);
-        }
-        errorBytes[position+4] = 0;
-
-        return errorBytes;
-    }
-
     public static void main(String [] args) {
 
         try {
+        	UtilTFTP.puts("Opening Socket...");
             DatagramSocket srv = new DatagramSocket(6969);
             while (true) {
                 byte [] buf = new byte[516];
