@@ -46,12 +46,13 @@ public class PrintMD5 {
 				System.err.println(usage);
 				System.exit(1);
 			} else if (args.length == 1) {
-				System.out.println(getMD5Checksum(args[1]));
+				System.out.println(getMD5Checksum(args[0]));
 			} else if(args.length == 2){
-				if (getMD5Checksum(args[1]) == new String(args[2])){
+				if (getMD5Checksum(args[0]).equals(new String(args[1]))){
 					System.out.println("Same!");
 				}else{
-					System.out.println("Not the Same!");
+					
+					System.out.println(getMD5Checksum(args[0]) + "Not the Same!" + new String(args[1]));
 				}
 			}
 		} catch (Exception e) {
