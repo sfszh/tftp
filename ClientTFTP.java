@@ -13,7 +13,7 @@ public class ClientTFTP {
 
 	public static void main(String[] args) {
 		// error checking
-		String usage = "Usage: java TFTPClinet <server> <READ | WRITE> <file>";
+		String usage = "Guide: java client server [read or write] file mode ";
 		if (args.length < 3) {
 			System.err.println(usage);
 			System.exit(1);
