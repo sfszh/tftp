@@ -6,7 +6,9 @@ public class ServerTFTP extends Thread {
 
     DatagramPacket pkt;
     DatagramPacket ackPkt;
-
+    
+    final static int DEFAULT_PORT = 6969;
+    
     public ServerTFTP (DatagramPacket pkt) {
         this.pkt = pkt;
     }
@@ -131,8 +133,18 @@ public class ServerTFTP extends Thread {
     public static void main(String [] args) {
 
         try {
-        	UtilTFTP.puts("Opening Socket...");
-            DatagramSocket srv = new DatagramSocket(6969);
+        	
+        	
+        	int currentPort = 0;
+            
+        	if(args.length == 1){
+            	currentPort =  Integer.parseInt(args[0]);     	
+            }else{
+            	currentPort = DEFAULT_PORT;
+            }
+        	UtilTFTP.puts("Open Socket at: "+ currentPort);
+            DatagramSocket srv = new DatagramSocket(currentPort);
+            
             while (true) {
                 byte [] buf = new byte[516];
                 DatagramPacket pkt = new DatagramPacket(buf, buf.length);

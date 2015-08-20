@@ -233,7 +233,7 @@ public class ClientTFTP {
 				// header looks good, break out
 				break;
 			} catch (SocketTimeoutException e) {
-				System.out.println("TIMEOUT");
+				System.out.println("time out");
 				retry++;
 				continue;
 			}

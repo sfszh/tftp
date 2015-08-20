@@ -1,12 +1,40 @@
-Names: Rui Zhang
+Short Guide
+==========
+if you want to read the longer guide with pictures, please read the manual attached
 
 Compile
-=======
-Export ClientTFTP and ServerTFTP as .jar file.
+-------
+Open Eclipse
+Create a new project.
+import entire folder in to project.
 
-to StartUp a server:
+Export ClientTFTP.java as client.jar file. Move client.jar to .\client folder. There already is compiled one
+Export ServerTFTP.java as server.jar file. Move server.jar to .\server folder. There already is compiled one
+Export PrintMD5.java as md5.jar file. There already is compiled one in .\client and .\folder. dont need to move
 
-java -jar server.jar
 
-java -jar .\client.jar localhost write up.txt
-java -jar .\client.jar localhost read up.txt
+1. start a server: 
+	java -jar server.jar [port]
+	default port is 6969
+
+2. start a client:
+	1) read file:
+		java -jar .\client.jar localhost read test.txt
+	2) write file:
+		java -jar .\client.jar localhost write up.txt
+
+ 
+test
+----
+	test.txt: text file used to test transfer
+	test.jpg: jpg file  used to test transfer
+	
+	md5.txt: contain md5s of test.txt and jpg.txt
+	
+1. start test:
+	the md5 codes of test.txt and test.jpg are already generated and put into md5.txt file
+	test file by type these command:  
+	java -jar md5.jar test.jpg 076e3caed758a1c18c91a0e9cae3368f
+	java -jar md5.jar test.txt 33c7d897acf94d03aa84340f28aa3e1a
+	
+
